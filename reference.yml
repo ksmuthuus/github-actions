@@ -1,0 +1,52 @@
+# This file is in DRAFT mode, to be pursued further
+name: "Reference Code Blocks"
+
+on:
+  push:
+    branches:
+      - development1
+
+jobs:
+  debug:
+      name: Debug
+      runs-on: ubuntu-latest
+
+      steps:
+      - name: Get current date
+        id: today
+        run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
+      
+      - name: Set Env Variable
+        run: |
+            if [[ $GITHUB_REF == 'refs/heads/master' ]]; then
+                echo "INS=prod" >> "$GITHUB_ENV"
+            else
+                echo "INS=dev" >> "$GITHUB_ENV"
+            fi
+
+      - name: Dump env
+        run: env | sort
+      - name: Dump GitHub context
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+        run: echo "$GITHUB_CONTEXT"
+
+      - name: Get short SHA
+        id: slug
+        run: echo "::set-output name=sha8::$(echo ${GITHUB_SHA} | cut -c1-8)"
+      
+      - name: package
+        env:
+          PACKAGE: v${{ steps.today.outputs.date }}-${{ steps.slug.outputs.sha8 }}.zip
+        run: echo "$PACKAGE"
+
+      - name: Create release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ steps.today.outputs.date }}-${{ steps.slug.outputs.sha8 }}
+          release_name: Release v${{ steps.today.outputs.date }}-${{ steps.slug.outputs.sha8 }}
+          draft: false
+          prerelease: false
